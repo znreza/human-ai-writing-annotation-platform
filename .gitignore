@@ -1,0 +1,17 @@
+# local database
+data/*.db
+
+# secrets (never commit; use Streamlit Cloud secrets instead)
+.streamlit/secrets.toml
+
+# generated data artifacts that contain real corpus text (regenerable locally; do not publish)
+sample_items.json
+annotation_candidates*.json
+annotation_candidates*.html
+corpus_pairs_index.json
+selected_ids*.txt
+
+# python
+__pycache__/
+*.pyc
+.DS_Store
