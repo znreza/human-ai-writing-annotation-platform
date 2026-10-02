@@ -10,7 +10,16 @@ Local-first: runs on SQLite (config.DATABASE_URL). Point DATABASE_URL at Supabas
 """
 import json, os
 import streamlit as st
+import streamlit.components.v1 as components
 import config, db, auth, stages, admin, taxonomy
+
+def _scroll_to_top():
+    components.html(
+        "<script>const d=window.parent.document;"
+        "const t=d.querySelector('section.main')||d.querySelector('[data-testid=\"stMain\"]')"
+        "||d.scrollingElement||d.documentElement;"
+        "if(t){t.scrollTo({top:0,left:0,behavior:'auto'});}window.parent.scrollTo(0,0);</script>",
+        height=0)
 
 st.set_page_config(page_title=config.STUDY_TITLE, layout="wide")
 
@@ -106,6 +115,9 @@ def run_stage(ann_id, items, stage, is_preview):
     st.session_state.setdefault(idx_key, 0)
     idx = min(st.session_state[idx_key], n - 1)
 
+    if st.session_state.pop("_scroll_top", False):
+        _scroll_to_top()
+
     done = db.stage_completed_count(ann_id, stage)
     st.subheader(config.STAGE_TITLES[stage])
     st.progress(done / n if n else 0, text=f"{done} of {n} pairs completed in this stage")
@@ -113,15 +125,16 @@ def run_stage(ann_id, items, stage, is_preview):
                 f'<span style="color:#1a1a1a">  ({items[idx].genre})</span>', unsafe_allow_html=True)
 
     saved = stages.RENDERERS[stage](ann_id, items[idx], is_preview)
-    if saved and idx < n - 1:
-        st.session_state[idx_key] = idx + 1
+    if saved:
+        st.session_state["_scroll_top"] = True
+        if idx < n - 1:
+            st.session_state[idx_key] = idx + 1
         st.rerun()
 
-    c1, c2, c3 = st.columns([1, 1, 6])
-    if c1.button("◀ Previous", disabled=(idx == 0)):
+    # "Save and continue" (inside the stage renderer) advances to the next pair. Only a Previous
+    # control remains, to go back to an earlier pair if needed.
+    if st.button("◀ Previous", disabled=(idx == 0), key=f"prev_{stage}"):
         st.session_state[idx_key] = max(0, idx - 1); st.rerun()
-    if c2.button("Next ▶", disabled=(idx >= n - 1)):
-        st.session_state[idx_key] = min(n - 1, idx + 1); st.rerun()
 
 def annotator_flow(role):
     is_preview = (role == "admin")

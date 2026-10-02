@@ -64,6 +64,11 @@ class Event(Base):
 
 # ------------------------- engine -------------------------
 _connect_args = {"check_same_thread": False} if config.DATABASE_URL.startswith("sqlite") else {}
+if config.DATABASE_URL.startswith("sqlite"):
+    # make sure the local db directory exists and is writable (avoids first-run write errors)
+    import os as _os
+    _p = config.DATABASE_URL.replace("sqlite:///", "")
+    _os.makedirs(_os.path.dirname(_p) or ".", exist_ok=True)
 engine = create_engine(config.DATABASE_URL, connect_args=_connect_args, future=True)
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False, future=True)
 

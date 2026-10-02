@@ -1,0 +1,8 @@
+# Force a light theme for everyone. The app's custom styling assumes a light background, so a
+# viewer's system dark-mode must not be applied (it made text unreadable).
+[theme]
+base = "light"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f4f5f7"
+textColor = "#121212"
+primaryColor = "#E4695A"

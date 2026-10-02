@@ -102,24 +102,53 @@ def category_label(label, help_text, extra=""):
 
 # ------------------------------- Stage 1 -------------------------------
 def render_stage1(ann_id, item, is_preview):
-    callout("List <b>as many differences as you can find</b> between the original and the revised draft. "
-            "Write <b>one difference per line</b>. Look closely and be thorough; describe what changed "
-            "without worrying about categories yet.")
+    callout("Find the differences between the original and the revised draft. For <b>each</b> difference, "
+            "click <b>+ Add difference</b>, then fill in <b>both</b> boxes: the <b>difference</b> on the "
+            "left, and your <b>reasoning and the line numbers</b> that show it (e.g. B2, B5) on the right. "
+            "Add as many as you can find. <b>All boxes are required to continue.</b>")
     draft_pair(item)
-    section_header("Differences (one per line)")
-    saved = db.get_response(ann_id, item.pair_id, "stage1") or {}
-    key = f"s1_{item.pair_id}"
-    default = "\n".join(saved.get("differences", []))
-    txt = st.text_area("Differences (one per line)", value=default, key=key, height=220,
-                       label_visibility="collapsed",
-                       placeholder="e.g.\nThe revision adds a hopeful ending\nThe tone is more formal\n"
-                                   "A new character is introduced in B4\n...")
-    if st.button("Save and continue", key=f"save_{key}", type="primary"):
-        diffs = _lines_list(txt)
-        if not diffs and not is_preview:
-            st.warning("Please list at least one difference before continuing.")
-            return False
-        db.save_response(ann_id, item.pair_id, "stage1", {"differences": diffs}, is_preview=is_preview)
+    section_header("Differences")
+
+    saved = (db.get_response(ann_id, item.pair_id, "stage1") or {}).get("differences", [])
+    saved = [d if isinstance(d, dict) else {"difference": str(d), "reasoning": ""} for d in saved]
+    nkey = f"s1n_{item.pair_id}"
+    if nkey not in st.session_state:
+        st.session_state[nkey] = max(1, len(saved))
+    n = st.session_state[nkey]
+
+    rows = []
+    for i in range(n):
+        prev = saved[i] if i < len(saved) else {}
+        st.markdown(f'<div style="font-weight:700;margin-top:10px">Difference {i+1}</div>',
+                    unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            d = st.text_area("Difference", value=prev.get("difference", ""),
+                             key=f"s1d_{item.pair_id}_{i}", height=110, label_visibility="collapsed",
+                             placeholder="What changed between the drafts?")
+        with c2:
+            r = st.text_area("Reasoning and line numbers", value=prev.get("reasoning", ""),
+                             key=f"s1r_{item.pair_id}_{i}", height=110, label_visibility="collapsed",
+                             placeholder="Why is this a difference, and which lines show it? e.g. B2, B5")
+        rows.append({"difference": d.strip(), "reasoning": r.strip()})
+
+    a1, a2, _ = st.columns([1, 1, 4])
+    if a1.button("➕ Add difference", key=f"s1add_{item.pair_id}"):
+        st.session_state[nkey] = n + 1
+        st.rerun()
+    if a2.button("➖ Remove last", key=f"s1del_{item.pair_id}", disabled=(n <= 1)):
+        st.session_state[nkey] = max(1, n - 1)
+        st.rerun()
+
+    if st.button("Save and continue", key=f"save_s1_{item.pair_id}", type="primary"):
+        if not is_preview:
+            incomplete = [i + 1 for i, rw in enumerate(rows) if not (rw["difference"] and rw["reasoning"])]
+            if incomplete:
+                st.warning("Please fill in both boxes for every difference (or remove empty rows with "
+                           f"'Remove last'). Incomplete: difference {', '.join(map(str, incomplete))}.")
+                return False
+        cleaned = [rw for rw in rows if rw["difference"] and rw["reasoning"]]
+        db.save_response(ann_id, item.pair_id, "stage1", {"differences": cleaned}, is_preview=is_preview)
         db.log_event(ann_id, "save", item.pair_id, "stage1")
         return True
     return False
@@ -174,17 +203,18 @@ def render_stage2(ann_id, item, is_preview):
 
 # ------------------------------- Stage 3 -------------------------------
 def _bubble(is_user, text):
-    band = USER_BAND if is_user else AI_BAND
     grad = USER_GRAD if is_user else AI_GRAD
-    inner = PERSON_SVG if is_user else '<span style="color:#fff;font-weight:800;font-size:0.82rem">AI</span>'
+    bub = "#E8F0FE" if is_user else "#E7F5EA"
+    inner = PERSON_SVG if is_user else '<span style="color:#fff;font-weight:800;font-size:0.8rem">AI</span>'
     body = _html.escape(text or "").replace("\n", "<br>")
-    return (f'<div style="display:flex;gap:14px;padding:18px 20px;background:{band};'
-            f'border-bottom:1px solid #e9ecf1">'
-            f'<div style="flex:0 0 38px;height:38px;border-radius:50%;background:{grad};'
-            f'display:flex;align-items:center;justify-content:center;'
-            f'box-shadow:0 1px 4px rgba(0,0,0,.20)">{inner}</div>'
-            f'<div style="flex:1;font-size:1.0rem;line-height:1.6;color:#121212;'
-            f'align-self:center">{body}</div></div>')
+    avatar = (f'<div style="flex:0 0 36px;width:36px;height:36px;border-radius:50%;background:{grad};'
+              f'display:flex;align-items:center;justify-content:center;'
+              f'box-shadow:0 1px 4px rgba(0,0,0,.22)">{inner}</div>')
+    bubble = (f'<div style="max-width:82%;background:{bub};border:1px solid rgba(0,0,0,.07);'
+              f'border-radius:16px;padding:12px 16px;font-size:1.0rem;line-height:1.6;'
+              f'color:#121212">{body}</div>')
+    return (f'<div style="display:flex;gap:12px;align-items:flex-start;margin:12px 14px">'
+            f'{avatar}{bubble}</div>')
 
 def render_chat(item):
     try:
@@ -194,12 +224,10 @@ def render_chat(item):
     if not conv:
         conv = [{"role": "human", "text": item.instruction or "(no instruction recorded)"}]
     bubbles = [_bubble(m.get("role") == "human", m.get("text", "")) for m in conv]
-    # complete the final turn: the AI's response is the target revised draft (B)
-    if item.revised and (not conv or conv[-1].get("role") == "human"):
-        bubbles.append(_bubble(False, item.revised))
+    # conversation already includes the final turn's full AI reply (verbatim), so nothing is appended
     st.markdown(
-        f'<div style="border:1px solid #d7dae0;border-radius:14px;overflow:auto;max-height:420px;'
-        f'background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.06)">' + "".join(bubbles) + "</div>",
+        f'<div style="border:1px solid #d7dae0;border-radius:14px;overflow:auto;max-height:440px;'
+        f'background:#fafbfc;padding:6px 0">' + "".join(bubbles) + "</div>",
         unsafe_allow_html=True)
 
 def render_stage3(ann_id, item, is_preview):

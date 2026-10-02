@@ -30,6 +30,52 @@ def clean_draft(s):
             blank = 0; out.append(ln)
     return "\n".join(out).strip()
 
+# ---- strip conversational wrapper the model adds around a draft (opener/closer lines only) ----
+_OPENER = re.compile(
+    r"^(great|sure|certainly|absolutely|of course|okay|ok|awesome|perfect|wonderful|excellent|"
+    r"fantastic|nice|cool|thanks|thank you|glad|happy to|i'?d be happy|i would be happy|here'?s|"
+    r"here is|below (is|are)|that'?s? (a|an|great|excellent|wonderful|fantastic)|this (is|sounds)|"
+    r"love (this|it)|let'?s|let us|imagining|understood|got it|good (idea|one|choice)|alright|"
+    r"no problem|sounds good)\b", re.I)
+_CLOSER = re.compile(
+    r"(would you like|let me know|if you'?d? ?like|if you want|what (would|do) you (like|want)|"
+    r"feel free|hope (you|this|it|that)|i can (help|also|further|expand)|i'?d be happy to|shall i|"
+    r"do you want|want me to|happy to help|we can (also )?(explore|dive|continue|expand|flesh)|"
+    r"next steps?|let'?s continue|anything else|just (let me|say)|ready to help)", re.I)
+
+def _is_opener(line):
+    s = line.strip()
+    if not s:
+        return False
+    if re.match(r'^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>|"|“|\*\*|---)', s):  # heading/list/quote = content
+        return False
+    return bool(_OPENER.match(s))
+
+def strip_chatter(text, max_edge=4):
+    """Remove up to max_edge conversational opener/closer lines. Never touches middle content."""
+    if not text:
+        return text or ""
+    lines = text.split("\n")
+    n = 0
+    while lines and n < max_edge:
+        s = lines[0].strip()
+        if s == "":
+            lines.pop(0); continue
+        if _is_opener(s):
+            lines.pop(0); n += 1
+        else:
+            break
+    n = 0
+    while lines and n < max_edge:
+        s = lines[-1].strip()
+        if s == "":
+            lines.pop(); continue
+        if _CLOSER.search(s):
+            lines.pop(); n += 1
+        else:
+            break
+    return "\n".join(lines).strip()
+
 def _pid_index():
     """pair_id -> (conv, user, turn_id, genre) from the judge outputs (fiction/script) and, if present,
     the corpus index built by sample_corpus_genres.py (academic/application)."""
@@ -69,14 +115,16 @@ def _build_record(pid, meta):
             if cand != pid:
                 continue
             vtid = v.get("turn_id") if tid is None else tid
+            # Chat shows the FULL turns (including the final AI reply verbatim). The A/B draft boxes
+            # show the cleaned draft (conversational wrapper stripped from the AI draft).
             conversation = []
             for t in sorted(x for x in turns if x is not None and (vtid is None or x <= vtid)):
                 hc = clean_draft(turns[t].get("human_content"))
                 if hc: conversation.append({"role": "human", "text": hc[:MSG_CAP]})
-                if vtid is not None and t < vtid:
-                    ac = clean_draft(turns[t].get("assistant_content"))
-                    if ac: conversation.append({"role": "ai", "text": ac[:MSG_CAP]})
-            return dict(pair_id=pid, genre=meta.get("genre", ""), original=clean_draft(h), revised=clean_draft(a),
+                ac = clean_draft(turns[t].get("assistant_content"))
+                if ac: conversation.append({"role": "ai", "text": ac[:MSG_CAP]})
+            return dict(pair_id=pid, genre=meta.get("genre", ""),
+                        original=clean_draft(h), revised=clean_draft(strip_chatter(a)),
                         instruction=norm(turns.get(vtid, {}).get("human_content"))[:1000],
                         conversation=conversation, active=True)
     return None
