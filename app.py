@@ -115,7 +115,10 @@ def run_stage(ann_id, items, stage, is_preview):
     st.session_state.setdefault(idx_key, 0)
     idx = min(st.session_state[idx_key], n - 1)
 
-    if st.session_state.pop("_scroll_top", False):
+    # scroll to the top whenever the stage changes (incl. admin preview switching) or a pair advances
+    stage_changed = st.session_state.get("_last_stage") != stage
+    st.session_state["_last_stage"] = stage
+    if st.session_state.pop("_scroll_top", False) or stage_changed:
         _scroll_to_top()
 
     done = db.stage_completed_count(ann_id, stage)
