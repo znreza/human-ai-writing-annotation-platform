@@ -30,9 +30,9 @@ DATABASE_URL = _get("DATABASE_URL", _DEFAULT_DB)
 # The study covers three genres only. Each annotator sees PER_GENRE pairs from each, so
 # PAIRS_PER_ANNOTATOR = PER_GENRE * len(STUDY_GENRES). Sets are drawn per annotator so they differ
 # (overlap allowed, never fully identical). Same set is shown across all three stages.
-STUDY_GENRES = ["fiction"]          # fiction-only for now; add academic/application later
-PER_GENRE = int(_get("PER_GENRE", "10"))
-PAIRS_PER_ANNOTATOR = PER_GENRE * len(STUDY_GENRES)  # 10
+STUDY_GENRES = ["fiction", "academic", "application"]
+PER_GENRE = int(_get("PER_GENRE", "4"))
+PAIRS_PER_ANNOTATOR = PER_GENRE * len(STUDY_GENRES)  # 12 (4 per genre)
 TARGET_MINUTES = 30          # displayed guidance only
 STUDY_TITLE = "Study on the Impact of AI on Writing"
 

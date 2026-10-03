@@ -113,9 +113,9 @@ CATEGORY_LOOKUP = _flat()
 STUDY_RULES = """
 ### Before you begin
 
-You will compare **10 pairs** of short **fiction** texts. In each pair, one text is an author's
-original draft and the other is a revised version of it. The study has **three short stages**, shown
-one at a time.
+You will compare **12 pairs** of short texts across three kinds of writing: **fiction, academic
+writing, and job applications**. In each pair, one text is an author's original draft and the other is
+a revised version of it. The study has **three short stages**, shown one at a time.
 
 **Please do not use any AI or LLM tools at any point during this task** (ChatGPT, Claude, Gemini, or any
 writing assistant). We want your own observations in your own words. All responses are screened by an

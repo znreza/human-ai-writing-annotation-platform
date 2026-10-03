@@ -9,7 +9,7 @@ services:
       - key: PYTHON_VERSION
         value: "3.11.9"
       - key: PER_GENRE
-        value: "10"
+        value: "4"
       - key: ANNOTATOR_PASSWORD
         sync: false    # set in the Render dashboard, not stored in the repo
       - key: ADMIN_PASSWORD
