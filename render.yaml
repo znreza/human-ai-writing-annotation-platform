@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: ai-writing-annotation
+    name: writing-annotation-platform
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
