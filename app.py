@@ -8,7 +8,7 @@ Two roles via two passwords:
 
 Local-first: runs on SQLite (config.DATABASE_URL). Point DATABASE_URL at Supabase Postgres to deploy.
 """
-import json, os
+import json, os, re
 import streamlit as st
 import streamlit.components.v1 as components
 import config, db, auth, stages, admin, taxonomy
@@ -20,6 +20,19 @@ def _scroll_to_top():
         "||d.scrollingElement||d.documentElement;"
         "if(t){t.scrollTo({top:0,left:0,behavior:'auto'});}window.parent.scrollTo(0,0);</script>",
         height=0)
+
+def _valid_prolific(pid):
+    """Prolific IDs are alphanumeric tokens (commonly 24 chars). Keep the check loose but non-empty."""
+    return bool(pid) and re.fullmatch(r"[A-Za-z0-9]{5,64}", pid) is not None
+
+def _prolific_pid_from_url():
+    """Prolific appends ?PROLIFIC_PID=... (plus STUDY_ID / SESSION_ID) to the study URL."""
+    try:
+        pid = st.query_params.get("PROLIFIC_PID")
+    except Exception:
+        pid = None
+    pid = (pid or "").strip()
+    return pid if _valid_prolific(pid) else ""
 
 st.set_page_config(page_title=config.STUDY_TITLE, layout="wide")
 
@@ -72,34 +85,33 @@ def onboarding():
             st.rerun()
         st.stop()
 
-    # register or resume
+    # identify via Prolific ID: passed in the recruitment URL as ?PROLIFIC_PID=..., or entered manually.
+    # The same Prolific link resumes an existing participant automatically (no ID to memorize).
     if not st.session_state.get("annotator_id"):
-        st.header("Enter your name")
-        st.markdown("Enter your name to receive a participant ID, or resume with an existing ID.")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("New participant")
-            name = st.text_input("Your name")
-            if st.button("Get my participant ID and start", type="primary"):
-                if name.strip():
-                    aid = db.create_annotator(name, role="annotator")
-                    db.assign_items(aid)
-                    db.log_event(aid, "register")
-                    st.session_state["annotator_id"] = aid
-                    st.rerun()
+        pid = st.session_state.get("prolific_pid") or _prolific_pid_from_url()
+        if not pid:
+            st.header("Enter your Prolific ID")
+            st.markdown("Please enter your **Prolific ID** to begin. If you followed the study link from "
+                        "Prolific, it is normally detected automatically.")
+            entered = st.text_input("Prolific ID")
+            if st.button("Start the study", type="primary"):
+                entered = (entered or "").strip()
+                if _valid_prolific(entered):
+                    pid = entered
                 else:
-                    st.warning("Please enter your name.")
-        with col2:
-            st.subheader("Returning participant")
-            rid = st.text_input("Your participant ID (e.g. WM-AB12)")
-            if st.button("Resume"):
-                a = db.get_annotator(rid.strip().upper())
-                if a and a.role == "annotator":
-                    st.session_state["annotator_id"] = a.id
-                    st.rerun()
-                else:
-                    st.error("ID not found.")
-        st.stop()
+                    st.warning("Please enter a valid Prolific ID (letters and numbers).")
+            if not pid:
+                st.stop()
+        st.session_state["prolific_pid"] = pid
+        a = db.get_annotator_by_prolific(pid)
+        if a is None:
+            aid = db.create_annotator(pid, role="annotator", prolific_pid=pid)
+            db.assign_items(aid)
+            db.log_event(aid, "register")
+            st.session_state["annotator_id"] = aid
+        else:
+            st.session_state["annotator_id"] = a.id
+        st.rerun()
 
 # ---------------- staged annotation flow ----------------
 def current_stage(ann_id, items):
@@ -166,30 +178,27 @@ def annotator_flow(role):
         run_stage(ann_id, items, stage, is_preview=True)
         return
 
-    # prominent one-time "save your ID" gate before Stage 1
-    if not st.session_state.get("id_ack"):
-        st.header("Your participant ID")
-        st.success(f"### {ann_id}")
-        st.markdown(f'<div style="background:#FFF4E5;border-left:6px solid #E4695A;padding:12px 16px;'
-                    f'border-radius:6px;color:#1a1a1a;font-size:1.05rem;margin:6px 0 14px 0">'
-                    f'<b>Please write down or copy your participant ID: {ann_id}</b><br>'
-                    f'You will need it to resume if you stop partway through. It will not be shown '
-                    f'again on its own.</div>', unsafe_allow_html=True)
-        if st.button("I have saved my ID, continue to Stage 1", type="primary"):
-            st.session_state["id_ack"] = True
-            st.rerun()
-        return
+    pid = st.session_state.get("prolific_pid", "")
+    if pid:
+        st.markdown(f'<span style="color:#1a1a1a">Prolific ID <b style="color:#E4695A">{pid}</b> '
+                    f'— your progress is saved; returning via the same Prolific link resumes where you '
+                    f'left off.</span>', unsafe_allow_html=True)
 
-    st.markdown(f'<span style="color:#1a1a1a">Participant ID <b style="color:#E4695A">{ann_id}</b> '
-                f'— save it to resume later.</span>', unsafe_allow_html=True)
     stage = current_stage(ann_id, items)
     if stage is None:
         st.balloons()
-        st.success("You have completed all stages. Thank you for participating.")
-        st.markdown(f"Your participant ID is **{ann_id}**.")
+        st.success("You have completed the study. Thank you for participating!")
+        code = config.PROLIFIC_COMPLETION_CODE
+        if code:
+            st.markdown("Please return to Prolific to register your completion — click the button below "
+                        "(or enter the completion code on Prolific).")
+            st.link_button("Return to Prolific and submit", config.PROLIFIC_COMPLETION_URL + code,
+                           type="primary")
+            st.markdown(f"Completion code: **{code}**")
+        else:
+            st.markdown("You may now return to Prolific to submit your completion.")
         return
 
-    # gentle gate notice when a stage just opened
     run_stage(ann_id, items, stage, is_preview=False)
 
 def main():

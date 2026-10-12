@@ -22,6 +22,7 @@ class Annotator(Base):
     name: Mapped[str] = mapped_column(String(200))            # kept separate from responses
     role: Mapped[str] = mapped_column(String(16), default="annotator")  # annotator | admin
     is_preview: Mapped[bool] = mapped_column(Boolean, default=False)    # admin/demo sessions
+    prolific_pid: Mapped[str] = mapped_column(String(64), nullable=True, index=True)  # Prolific participant id
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=_now)
 
 class Item(Base):
@@ -74,6 +75,19 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False, future=True)
 
 def init_db():
     Base.metadata.create_all(engine)
+    _ensure_schema_migrations()
+
+def _ensure_schema_migrations():
+    """Lightweight additive migrations for tables that already exist (create_all never ALTERs).
+    Adds columns introduced after the first deploy. Safe to run every startup; no-ops when current."""
+    from sqlalchemy import inspect, text
+    try:
+        cols = {c["name"] for c in inspect(engine).get_columns("annotators")}
+    except Exception:
+        return  # table not created yet (first run handles it via create_all above)
+    if "prolific_pid" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE annotators ADD COLUMN prolific_pid VARCHAR(64)"))
 
 # ------------------------- helpers -------------------------
 _ALPHABET = string.ascii_uppercase + string.digits
@@ -81,18 +95,28 @@ _ALPHABET = string.ascii_uppercase + string.digits
 def _new_id():
     return "WM-" + "".join(secrets.choice(_ALPHABET) for _ in range(4))
 
-def create_annotator(name, role="annotator", is_preview=False):
+def create_annotator(name, role="annotator", is_preview=False, prolific_pid=None):
     with SessionLocal() as s:
         aid = _new_id()
         while s.get(Annotator, aid):
             aid = _new_id()
-        a = Annotator(id=aid, name=name.strip()[:200], role=role, is_preview=is_preview)
+        a = Annotator(id=aid, name=name.strip()[:200], role=role, is_preview=is_preview,
+                      prolific_pid=(prolific_pid.strip()[:64] if prolific_pid else None))
         s.add(a); s.commit()
         return aid
 
 def get_annotator(aid):
     with SessionLocal() as s:
         return s.get(Annotator, aid)
+
+def get_annotator_by_prolific(pid):
+    """Return the existing annotator for a Prolific participant id, or None. Lets a returning
+    participant resume automatically from the same Prolific link. Ignores preview rows."""
+    if not pid:
+        return None
+    with SessionLocal() as s:
+        return s.scalar(select(Annotator).where(
+            Annotator.prolific_pid == pid.strip(), Annotator.is_preview == False))
 
 def assign_items(annotator_id, per_genre=None, genres=None, seed=None):
     """Assign per_genre active items from each studied genre to an annotator. Sampling is seeded by the
@@ -199,7 +223,7 @@ def export_rows(include_preview=False):
         out = []
         for resp, ann, item in s.execute(q).all():
             out.append(dict(
-                annotator_id=ann.id, role=ann.role, is_preview=resp.is_preview,
-                item_id=item.pair_id, genre=item.genre, stage=resp.stage,
+                annotator_id=ann.id, prolific_pid=ann.prolific_pid or "", role=ann.role,
+                is_preview=resp.is_preview, item_id=item.pair_id, genre=item.genre, stage=resp.stage,
                 payload=resp.payload, updated_at=resp.updated_at.isoformat()))
         return out

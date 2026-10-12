@@ -16,3 +16,5 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: PROLIFIC_COMPLETION_CODE
+        sync: false    # from the Prolific study page; shown to participants at the end

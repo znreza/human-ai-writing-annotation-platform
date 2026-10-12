@@ -1,5 +1,5 @@
 """Regenerate sample_items.json for the THREE studied genres (fiction, academic, application),
-each with a turn-based conversation (human + AI) for the Stage 3 chat view. Builds a pool larger than
+each with a turn-based conversation (human + AI) for the Stage 2 chat view. Builds a pool larger than
 PER_GENRE so annotators get different (overlapping, non-identical) sets. Demo only; the real study
 builder will sample a larger pool from the corpus. Run:  python build_sample_items.py
 """

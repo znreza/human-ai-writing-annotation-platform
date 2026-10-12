@@ -1,14 +1,14 @@
 """Study content: the merged category set (used in both stages), the rating options, and the
 briefing/consent text. Kept in one place so the design can be revised without touching app logic.
 
-Both stages show the SAME categories: common edit types grouped by family, plus a genre-specific group
-drawn from our LLM judge's checklist (checklist_templates.json). Stage 2 rates how present each is in the
-revision; Stage 3 asks, given the conversation, whether each was asked or implied by the user.
+Stage 2 shows the merged category set: common edit types grouped by family, plus a genre-specific group
+drawn from our LLM judge's checklist (checklist_templates.json). Given the conversation, it asks whether
+each change was asked or implied by the user.
 """
 
 # ---- rating options (radio dials, consistent across stages) ----
 PRESENCE_OPTIONS = ["Absent", "Present", "Very present"]                       # Stage 2
-JUSTIFY_OPTIONS = ["Asked", "Implied", "Not asked or implied", "Unsure"]      # Stage 3
+JUSTIFY_OPTIONS = ["Asked", "Implied", "Not asked or implied", "Unsure"]      # Stage 2
 
 # ---- common edit types, grouped (id, label, definition) ----
 EDIT_GROUPS = {
@@ -128,7 +128,7 @@ STUDY_RULES = """
 
 You will compare **12 pairs** of short texts across three kinds of writing: **fiction, academic
 writing, and job applications**. In each pair, one text is an author's original draft and the other is
-a revised version of it. The study has **three short stages**, shown one at a time.
+a revised version of it. The study has **two short stages**, shown one at a time.
 
 **Please do not use any AI or LLM tools at any point during this task** (ChatGPT, Claude, Gemini, or any
 writing assistant). We want your own observations in your own words. All responses are screened by an

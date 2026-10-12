@@ -1,10 +1,9 @@
-"""Per-item rendering for the three annotation stages.
+"""Per-item rendering for the two annotation stages.
 
 Stage 1: free-form list of as many differences as the annotator can find.
-Stage 2: the merged category set (common edit types + genre-specific), each rated Absent / Present /
-         Very present with line-number evidence, plus a free-text catch-all.
-Stage 3: the same conversation + both drafts (target draft emphasized), then the SAME categories asked
-         as "asked or implied by the user" vs "not asked", given the conversation as context.
+Stage 2: the conversation + both drafts (target draft emphasized), then the merged category set
+         (common edit types + genre-specific) asked as "asked or implied by the user" vs "not asked",
+         given the conversation as context. (Saved under the DB stage key "stage2".)
 
 Drafts show per-line numbers in a code-editor style (A# original, B# revised). Definitions sit directly
 under each category label. Categories are all visible (no collapsibles). Gray text is avoided.
@@ -153,75 +152,85 @@ def render_stage1(ann_id, item, is_preview):
         return True
     return False
 
-# ------------------------------- Stage 2 -------------------------------
-def render_stage2(ann_id, item, is_preview):
-    callout("For each category, say how present it is in the <b>revised draft (B)</b> "
-            "(<b>Absent / Present / Very present</b>). For some categories you will also be asked to add "
-            "<b>details, evidence, or remarks referring to line numbers</b> (for example <b>B2, B5</b> or "
-            f"<b>A3</b>) — <b style='color:{RED}'>required</b> where marked with a "
-            f"<b style='color:{RED}'>*</b>, optional for the rest. Definitions are shown under each category.")
-    draft_pair(item)
-    spacer(20)
-    saved = db.get_response(ann_id, item.pair_id, "stage2") or {}
-    saved_cats = saved.get("categories", {})
-    opts = taxonomy.PRESENCE_OPTIONS
+# ============================================================================================
+# DISABLED (kept for later) — original Stage 2: presence ratings (Absent / Present / Very present)
+# with required line-number evidence for the key categories. Commented out while the study runs
+# with two stages. To re-enable a three-stage flow:
+#   1. Uncomment render_stage2 below.
+#   2. Rename the ACTIVE render_stage2 (the asked/implied judgement, further down) back to
+#      render_stage3 and change its DB stage key from "stage2" to "stage3".
+#   3. Restore config.STAGES / STAGE_TITLES to include "stage3" and add it to RENDERERS.
+#
+# def render_stage2(ann_id, item, is_preview):
+#     callout("For each category, say how present it is in the <b>revised draft (B)</b> "
+#             "(<b>Absent / Present / Very present</b>). For some categories you will also be asked to add "
+#             "<b>details, evidence, or remarks referring to line numbers</b> (for example <b>B2, B5</b> or "
+#             f"<b>A3</b>) — <b style='color:{RED}'>required</b> where marked with a "
+#             f"<b style='color:{RED}'>*</b>, optional for the rest. Definitions are shown under each category.")
+#     draft_pair(item)
+#     spacer(20)
+#     saved = db.get_response(ann_id, item.pair_id, "stage2") or {}
+#     saved_cats = saved.get("categories", {})
+#     opts = taxonomy.PRESENCE_OPTIONS
+#
+#     cats = {}
+#     required_ids = set()
+#     for group, items in taxonomy.categories_for(item.genre):
+#         # warm notice introducing the sections that require written evidence
+#         if group == "Style and register":
+#             callout("For the sections below, please add <b>details, evidence, or remarks referring to "
+#                     "specific line numbers</b> (for example <b>B2, B5</b>). Where a category is marked "
+#                     f"with a <b style='color:{RED}'>*</b>, this is <b>required</b> whenever you mark it "
+#                     "<b>Present</b> or <b>Very present</b>; for the others it is optional but encouraged.")
+#         group_header(group)
+#         for cid, label, hlp in items:
+#             prev = saved_cats.get(cid, {})
+#             req = taxonomy.detail_required(group, cid)
+#             if req:
+#                 required_ids.add(cid)
+#             star = f' <span style="color:{RED};font-weight:800">*</span>' if req else ""
+#             category_label(label, hlp, extra=star)
+#             c1, c2 = st.columns([3, 2])
+#             with c1:
+#                 cur = prev.get("presence")
+#                 val = st.radio(label, opts, index=opts.index(cur) if cur in opts else None,
+#                                horizontal=True, key=f"s2r_{item.pair_id}_{cid}",
+#                                label_visibility="collapsed")
+#             with c2:
+#                 ph = ("details and line numbers, e.g. B2, B5 (required)" if req
+#                       else "optional: details or remarks, line numbers e.g. B2, B5")
+#                 lines = st.text_input("Details and line numbers", value=prev.get("lines", ""),
+#                                       key=f"s2l_{item.pair_id}_{cid}",
+#                                       placeholder=ph, label_visibility="collapsed")
+#             cats[cid] = {"presence": val, "lines": lines.strip()}
+#
+#     section_header("What other kinds of edits do you see that are not covered above? Type N/A if none.")
+#     other = st.text_area("Other edits", value=saved.get("other", ""), key=f"s2o_{item.pair_id}",
+#                          height=90, label_visibility="collapsed",
+#                          placeholder="Describe any other changes you notice.")
+#
+#     if st.button("Save and continue", key=f"save_s2_{item.pair_id}", type="primary"):
+#         unanswered = [cid for cid, v in cats.items() if v["presence"] is None]
+#         if unanswered and not is_preview:
+#             st.warning(f"Please choose Absent, Present, or Very present for every category before "
+#                        f"continuing. {len(unanswered)} still unanswered.")
+#             return False
+#         missing_detail = [cid for cid in required_ids
+#                           if cats[cid]["presence"] in ("Present", "Very present") and not cats[cid]["lines"]]
+#         if missing_detail and not is_preview:
+#             labels = ", ".join(taxonomy.CATEGORY_LOOKUP.get(cid, (cid,))[0] for cid in missing_detail)
+#             st.warning("For the categories marked with * that you rated Present or Very present, please add "
+#                        f"details, evidence, or remarks referring to line numbers. Still needed: {labels}.")
+#             return False
+#         db.save_response(ann_id, item.pair_id, "stage2",
+#                          {"categories": cats, "other": other.strip()}, is_preview=is_preview)
+#         db.log_event(ann_id, "save", item.pair_id, "stage2")
+#         return True
+#     return False
+# ============================================================================================
 
-    cats = {}
-    required_ids = set()
-    for group, items in taxonomy.categories_for(item.genre):
-        # warm notice introducing the sections that require written evidence
-        if group == "Style and register":
-            callout("For the sections below, please add <b>details, evidence, or remarks referring to "
-                    "specific line numbers</b> (for example <b>B2, B5</b>). Where a category is marked "
-                    f"with a <b style='color:{RED}'>*</b>, this is <b>required</b> whenever you mark it "
-                    "<b>Present</b> or <b>Very present</b>; for the others it is optional but encouraged.")
-        group_header(group)
-        for cid, label, hlp in items:
-            prev = saved_cats.get(cid, {})
-            req = taxonomy.detail_required(group, cid)
-            if req:
-                required_ids.add(cid)
-            star = f' <span style="color:{RED};font-weight:800">*</span>' if req else ""
-            category_label(label, hlp, extra=star)
-            c1, c2 = st.columns([3, 2])
-            with c1:
-                cur = prev.get("presence")
-                val = st.radio(label, opts, index=opts.index(cur) if cur in opts else None,
-                               horizontal=True, key=f"s2r_{item.pair_id}_{cid}",
-                               label_visibility="collapsed")
-            with c2:
-                ph = ("details and line numbers, e.g. B2, B5 (required)" if req
-                      else "optional: details or remarks, line numbers e.g. B2, B5")
-                lines = st.text_input("Details and line numbers", value=prev.get("lines", ""),
-                                      key=f"s2l_{item.pair_id}_{cid}",
-                                      placeholder=ph, label_visibility="collapsed")
-            cats[cid] = {"presence": val, "lines": lines.strip()}
-
-    section_header("What other kinds of edits do you see that are not covered above? Type N/A if none.")
-    other = st.text_area("Other edits", value=saved.get("other", ""), key=f"s2o_{item.pair_id}",
-                         height=90, label_visibility="collapsed",
-                         placeholder="Describe any other changes you notice.")
-
-    if st.button("Save and continue", key=f"save_s2_{item.pair_id}", type="primary"):
-        unanswered = [cid for cid, v in cats.items() if v["presence"] is None]
-        if unanswered and not is_preview:
-            st.warning(f"Please choose Absent, Present, or Very present for every category before "
-                       f"continuing. {len(unanswered)} still unanswered.")
-            return False
-        missing_detail = [cid for cid in required_ids
-                          if cats[cid]["presence"] in ("Present", "Very present") and not cats[cid]["lines"]]
-        if missing_detail and not is_preview:
-            labels = ", ".join(taxonomy.CATEGORY_LOOKUP.get(cid, (cid,))[0] for cid in missing_detail)
-            st.warning("For the categories marked with * that you rated Present or Very present, please add "
-                       f"details, evidence, or remarks referring to line numbers. Still needed: {labels}.")
-            return False
-        db.save_response(ann_id, item.pair_id, "stage2",
-                         {"categories": cats, "other": other.strip()}, is_preview=is_preview)
-        db.log_event(ann_id, "save", item.pair_id, "stage2")
-        return True
-    return False
-
-# ------------------------------- Stage 3 -------------------------------
+# ------------------------------- Stage 2 (conversation + asked/implied judgement) -------------------------------
+# (Previously Stage 3; now the second and final stage, saved under the DB stage key "stage2".)
 def _bubble(is_user, text):
     grad = USER_GRAD if is_user else AI_GRAD
     bub = "#E8F0FE" if is_user else "#E7F5EA"
@@ -250,7 +259,7 @@ def render_chat(item):
         f'background:#fafbfc;padding:6px 0">' + "".join(bubbles) + "</div>",
         unsafe_allow_html=True)
 
-def render_stage3(ann_id, item, is_preview):
+def render_stage2(ann_id, item, is_preview):
     callout("Below is a conversation between a <b>human</b> and an <b>AI</b> on a writing task. You are "
             "shown the <b>final turn</b> of that conversation, including the human's instruction and the "
             "AI's reply. Given the conversation as context, assess <b>ONLY the target revised draft (B)</b>: "
@@ -263,9 +272,7 @@ def render_stage3(ann_id, item, is_preview):
     section_header("The two drafts — judge the revised draft (B)")
     draft_pair(item, big=True)
 
-    s2 = db.get_response(ann_id, item.pair_id, "stage2") or {}
-    s2cats = s2.get("categories", {})
-    saved = db.get_response(ann_id, item.pair_id, "stage3") or {}
+    saved = db.get_response(ann_id, item.pair_id, "stage2") or {}
     saved_cats = saved.get("categories", {})
     opts = taxonomy.JUSTIFY_OPTIONS
 
@@ -275,36 +282,33 @@ def render_stage3(ann_id, item, is_preview):
         group_header(group)
         for cid, label, hlp in items:
             prev = saved_cats.get(cid, {})
-            pres = (s2cats.get(cid, {}) or {}).get("presence")
-            note = (f'  <span style="background:#eef1f5;border-radius:8px;padding:1px 8px;'
-                    f'font-size:0.82rem;color:#121212">you marked: {pres}</span>') if pres and pres != "Absent" else ""
-            category_label(label, hlp, extra=note)
+            category_label(label, hlp)
             cur = prev.get("justify")
             val = st.radio(label, opts, index=opts.index(cur) if cur in opts else None,
-                           horizontal=True, key=f"s3r_{item.pair_id}_{cid}",
+                           horizontal=True, key=f"s2j_{item.pair_id}_{cid}",
                            label_visibility="collapsed")
             cats[cid] = {"justify": val}
 
     section_header("Any additional remarks about this pair (optional)")
-    remarks = st.text_area("Remarks", value=saved.get("remarks", ""), key=f"s3rm_{item.pair_id}",
+    remarks = st.text_area("Remarks", value=saved.get("remarks", ""), key=f"s2rm_{item.pair_id}",
                            height=90, label_visibility="collapsed", placeholder="Anything else worth noting.")
 
     section_header("If this were your own draft, how satisfied would you be with the revision? (optional)")
     satisfaction = st.text_area("Satisfaction", value=saved.get("satisfaction", ""),
-                                key=f"s3s_{item.pair_id}", height=80, label_visibility="collapsed",
+                                key=f"s2s_{item.pair_id}", height=80, label_visibility="collapsed",
                                 placeholder="Describe how satisfied you would be and why.")
 
-    if st.button("Save and continue", key=f"save_s3_{item.pair_id}", type="primary"):
+    if st.button("Save and continue", key=f"save_s2_{item.pair_id}", type="primary"):
         unanswered = [cid for cid, v in cats.items() if v["justify"] is None]
         if unanswered and not is_preview:
             st.warning(f"Please choose an option for every category before continuing. "
                        f"{len(unanswered)} still unanswered.")
             return False
-        db.save_response(ann_id, item.pair_id, "stage3",
+        db.save_response(ann_id, item.pair_id, "stage2",
                          {"categories": cats, "remarks": remarks.strip(),
                           "satisfaction": satisfaction.strip()}, is_preview=is_preview)
-        db.log_event(ann_id, "save", item.pair_id, "stage3")
+        db.log_event(ann_id, "save", item.pair_id, "stage2")
         return True
     return False
 
-RENDERERS = {"stage1": render_stage1, "stage2": render_stage2, "stage3": render_stage3}
+RENDERERS = {"stage1": render_stage1, "stage2": render_stage2}
