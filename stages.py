@@ -156,9 +156,10 @@ def render_stage1(ann_id, item, is_preview):
 # ------------------------------- Stage 2 -------------------------------
 def render_stage2(ann_id, item, is_preview):
     callout("For each category, say how present it is in the <b>revised draft (B)</b> "
-            "(<b>Absent / Present / Very present</b>) and list the "
-            f"<b style='color:{RED}'>line numbers</b> where you see evidence (for example "
-            "<b>B2, B5</b> or <b>A3</b>). Definitions are shown under each category.")
+            "(<b>Absent / Present / Very present</b>). For some categories you will also be asked to add "
+            "<b>details, evidence, or remarks referring to line numbers</b> (for example <b>B2, B5</b> or "
+            f"<b>A3</b>) — <b style='color:{RED}'>required</b> where marked with a "
+            f"<b style='color:{RED}'>*</b>, optional for the rest. Definitions are shown under each category.")
     draft_pair(item)
     spacer(20)
     saved = db.get_response(ann_id, item.pair_id, "stage2") or {}
@@ -166,11 +167,22 @@ def render_stage2(ann_id, item, is_preview):
     opts = taxonomy.PRESENCE_OPTIONS
 
     cats = {}
+    required_ids = set()
     for group, items in taxonomy.categories_for(item.genre):
+        # warm notice introducing the sections that require written evidence
+        if group == "Style and register":
+            callout("For the sections below, please add <b>details, evidence, or remarks referring to "
+                    "specific line numbers</b> (for example <b>B2, B5</b>). Where a category is marked "
+                    f"with a <b style='color:{RED}'>*</b>, this is <b>required</b> whenever you mark it "
+                    "<b>Present</b> or <b>Very present</b>; for the others it is optional but encouraged.")
         group_header(group)
         for cid, label, hlp in items:
             prev = saved_cats.get(cid, {})
-            category_label(label, hlp)
+            req = taxonomy.detail_required(group, cid)
+            if req:
+                required_ids.add(cid)
+            star = f' <span style="color:{RED};font-weight:800">*</span>' if req else ""
+            category_label(label, hlp, extra=star)
             c1, c2 = st.columns([3, 2])
             with c1:
                 cur = prev.get("presence")
@@ -178,10 +190,11 @@ def render_stage2(ann_id, item, is_preview):
                                horizontal=True, key=f"s2r_{item.pair_id}_{cid}",
                                label_visibility="collapsed")
             with c2:
-                lines = st.text_input("Line numbers", value=prev.get("lines", ""),
+                ph = ("details and line numbers, e.g. B2, B5 (required)" if req
+                      else "optional: details or remarks, line numbers e.g. B2, B5")
+                lines = st.text_input("Details and line numbers", value=prev.get("lines", ""),
                                       key=f"s2l_{item.pair_id}_{cid}",
-                                      placeholder="line numbers, e.g. B2, B5",
-                                      label_visibility="collapsed")
+                                      placeholder=ph, label_visibility="collapsed")
             cats[cid] = {"presence": val, "lines": lines.strip()}
 
     section_header("What other kinds of edits do you see that are not covered above? Type N/A if none.")
@@ -194,6 +207,13 @@ def render_stage2(ann_id, item, is_preview):
         if unanswered and not is_preview:
             st.warning(f"Please choose Absent, Present, or Very present for every category before "
                        f"continuing. {len(unanswered)} still unanswered.")
+            return False
+        missing_detail = [cid for cid in required_ids
+                          if cats[cid]["presence"] in ("Present", "Very present") and not cats[cid]["lines"]]
+        if missing_detail and not is_preview:
+            labels = ", ".join(taxonomy.CATEGORY_LOOKUP.get(cid, (cid,))[0] for cid in missing_detail)
+            st.warning("For the categories marked with * that you rated Present or Very present, please add "
+                       f"details, evidence, or remarks referring to line numbers. Still needed: {labels}.")
             return False
         db.save_response(ann_id, item.pair_id, "stage2",
                          {"categories": cats, "other": other.strip()}, is_preview=is_preview)

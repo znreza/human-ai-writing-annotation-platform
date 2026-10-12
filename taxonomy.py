@@ -29,6 +29,11 @@ EDIT_GROUPS = {
         ("formatting", "Formatting and layout", "Changed headings, lists, or visual layout."),
         ("transitions", "Transitions", "Added or changed transitions and connectives."),
     ],
+    "General": [
+        ("length_expansion", "Expansion", "Made the piece noticeably longer overall."),
+        ("length_compression", "Compression", "Made the piece noticeably shorter overall."),
+        ("overall_polish", "Overall polish", "General smoothing or polishing across the piece."),
+    ],
     "Style and register": [
         ("formality", "Formality and register", "Made the writing more formal or more casual."),
         ("tone", "Emotional tone", "Shifted the emotional tone of the piece."),
@@ -50,11 +55,6 @@ EDIT_GROUPS = {
         ("idiosyncrasy_removed", "Removed idiosyncrasy", "Removed quirks, personal phrasing, or imperfections."),
         ("stance_change", "Changed stance or perspective", "Altered the author's viewpoint or attitude."),
         ("authenticity", "Reduced authenticity", "Made emotionally authentic writing feel generic."),
-    ],
-    "General": [
-        ("length_expansion", "Expansion", "Made the piece noticeably longer overall."),
-        ("length_compression", "Compression", "Made the piece noticeably shorter overall."),
-        ("overall_polish", "Overall polish", "General smoothing or polishing across the piece."),
     ],
 }
 
@@ -89,6 +89,19 @@ GENRE_SPECIFIC = {
 # genres without their own set map to the closest available one
 GENRE_MAP = {"fiction": "fiction", "script": "fiction", "poetry": "fiction",
              "academic": "academic", "application": "application", "correspondence": "application"}
+
+# ---- which categories require written evidence (details/remarks referring to line numbers) ----
+# Groups whose categories require evidence when the annotator marks them Present / Very present.
+# Other groups only invite optional remarks. "Genre-specific categories" is the synthetic group
+# name appended by categories_for().
+DETAIL_REQUIRED_GROUPS = {"Style and register", "Meaning and content",
+                          "Personal voice", "Genre-specific categories"}
+# Within a required group, these category ids stay optional.
+DETAIL_OPTIONAL_EXCEPTIONS = {"formality"}
+
+def detail_required(group_name, cid):
+    """True if this category should require written evidence referring to line numbers."""
+    return group_name in DETAIL_REQUIRED_GROUPS and cid not in DETAIL_OPTIONAL_EXCEPTIONS
 
 def categories_for(genre):
     """Ordered list of (group_name, [(id, label, help), ...]) shown in BOTH stages for this genre."""
