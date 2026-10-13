@@ -153,9 +153,9 @@ If you agree to be in this study, you will be shown a series of paired texts in 
 and the other is a revised version of it. For each pair, you will be asked to identify the differences between the two versions and answer follow up questions about the differences. You will respond using short
 written answers and multiple-choice selections.
 
-Study time: The estimated study completion time has been displayed to you in Prolific interface.
+**Study time**: The estimated study completion time has been displayed to you in Prolific interface.
 
-Study location: You will participate online, from the comfort of your current location.
+**Study location**: You will participate online, from the comfort of your current location.
 
 **Benefits**
 
