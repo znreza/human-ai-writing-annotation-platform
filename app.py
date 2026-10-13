@@ -205,15 +205,19 @@ def main():
     role = auth.check_password()
     if not role:
         return
-    sidebar(role)
 
     if role == "admin":
+        sidebar(role)
         mode = st.sidebar.radio("Admin view", ["Dashboard", "Preview annotation flow"])
         if mode == "Dashboard":
             admin.render_dashboard()
         else:
             annotator_flow(role)
     else:
+        # annotators (Prolific): no sidebar — hide the Role/Log out panel and its toggle entirely
+        st.markdown("<style>[data-testid='stSidebar'],[data-testid='stSidebarCollapsedControl'],"
+                    "[data-testid='collapsedControl']{display:none!important}</style>",
+                    unsafe_allow_html=True)
         annotator_flow(role)
 
 if __name__ == "__main__":
