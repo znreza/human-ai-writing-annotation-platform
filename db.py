@@ -119,27 +119,40 @@ def get_annotator_by_prolific(pid):
             Annotator.prolific_pid == pid.strip(), Annotator.is_preview == False))
 
 def assign_items(annotator_id, per_genre=None, genres=None, seed=None):
-    """Assign per_genre active items from each studied genre to an annotator. Sampling is seeded by the
-    annotator id, so different annotators get different (overlapping, non-identical) sets. Same set is
-    reused across all stages. Idempotent: skips if already assigned."""
-    import random
-    per_genre = per_genre if per_genre is not None else config.PER_GENRE
-    genres = genres if genres is not None else config.STUDY_GENRES
+    """Assign the SHARED fixed set to an annotator: EVERY annotator sees ALL active items, in one
+    stable order (same for everyone). Curate the shown set by choosing which items are active (see
+    load_items.py --deactivate-others). Idempotent: skips if already assigned.
+
+    (Previously each annotator got a per-genre random sample — different, overlapping sets. That
+    behaviour is kept commented below for easy restore.)"""
     with SessionLocal() as s:
         existing = s.scalars(select(Assignment).where(Assignment.annotator_id == annotator_id)).all()
         if existing:
             return len(existing)
-        rng = random.Random(seed if seed is not None else annotator_id)
-        chosen = []
-        for g in genres:
-            ids = list(s.scalars(select(Item.pair_id).where(Item.active == True, Item.genre == g)).all())
-            rng.shuffle(ids)
-            chosen.extend(ids[:per_genre])
-        rng.shuffle(chosen)  # interleave genres in display order
+        # fixed shared order: by study-genre rank, then pair_id — deterministic and identical per user
+        rank = {g: i for i, g in enumerate(config.STUDY_GENRES)}
+        rows = s.execute(select(Item.pair_id, Item.genre).where(Item.active == True)).all()
+        chosen = [pid for pid, _ in sorted(rows, key=lambda r: (rank.get(r[1], 99), r[0]))]
         for pos, iid in enumerate(chosen):
             s.add(Assignment(annotator_id=annotator_id, item_id=iid, position=pos))
         s.commit()
         return len(chosen)
+
+        # --- DISABLED (kept for later): per-annotator random sample of per_genre items per genre ---
+        # import random
+        # per_genre = per_genre if per_genre is not None else config.PER_GENRE
+        # genres = genres if genres is not None else config.STUDY_GENRES
+        # rng = random.Random(seed if seed is not None else annotator_id)
+        # chosen = []
+        # for g in genres:
+        #     ids = list(s.scalars(select(Item.pair_id).where(Item.active == True, Item.genre == g)).all())
+        #     rng.shuffle(ids)
+        #     chosen.extend(ids[:per_genre])
+        # rng.shuffle(chosen)  # interleave genres in display order
+        # for pos, iid in enumerate(chosen):
+        #     s.add(Assignment(annotator_id=annotator_id, item_id=iid, position=pos))
+        # s.commit()
+        # return len(chosen)
 
 def get_assignment(annotator_id):
     """Return ordered list of Item objects assigned to this annotator."""

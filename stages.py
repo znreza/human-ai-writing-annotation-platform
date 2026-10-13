@@ -90,6 +90,20 @@ def draft_pair(item, big=False):
         st.markdown(f"#### Target revised draft (B){tag}", unsafe_allow_html=True)
         numbered_block(item.revised, "B", height=h, big=big)
 
+def instruction_box(item):
+    """Clearly-marked box showing the user's latest instruction for this draft, above the drafts.
+    If there is no recorded instruction, the box is shown but left empty."""
+    instr = (item.instruction or "").strip()
+    body = (_html.escape(instr) if instr else
+            '<span style="color:#8a8f98;font-style:italic">(no explicit instruction recorded for this draft)</span>')
+    st.markdown(
+        f'<div style="border:2px solid {RED};border-radius:10px;background:#FFF4E5;'
+        f'padding:12px 16px;margin:4px 0 14px 0">'
+        f'<div style="font-weight:800;color:{RED};font-size:0.92rem;letter-spacing:.4px;'
+        f'margin-bottom:6px">LATEST INSTRUCTION FROM THE USER</div>'
+        f'<div style="color:#121212;font-size:1.02rem;line-height:1.5;white-space:pre-wrap">{body}</div></div>',
+        unsafe_allow_html=True)
+
 def _lines_list(text):
     return [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
 
@@ -260,34 +274,62 @@ def render_chat(item):
         unsafe_allow_html=True)
 
 def render_stage2(ann_id, item, is_preview):
-    callout("Below is a conversation between a <b>human</b> and an <b>AI</b> on a writing task. You are "
-            "shown the <b>final turn</b> of that conversation, including the human's instruction and the "
-            "AI's reply. Given the conversation as context, assess <b>ONLY the target revised draft (B)</b>: "
-            "for each category, say whether that change was <b>asked or implied</b> by the user or "
-            "<b>not asked</b>.", strong=True)
+    callout("Below is the conversation between a <b>human</b> and an <b>AI</b>, the user's latest "
+            "instruction, and the two drafts. For <b>each difference you identified in Stage 1</b>, "
+            "decide — given the conversation and instruction as context — whether that change was "
+            "<b>asked</b>, <b>implied</b>, or <b>not asked or implied</b> by the user.", strong=True)
 
     section_header("Conversation between the human and the AI")
     render_chat(item)
 
     section_header("The two drafts — judge the revised draft (B)")
+    instruction_box(item)
     draft_pair(item, big=True)
 
-    saved = db.get_response(ann_id, item.pair_id, "stage2") or {}
-    saved_cats = saved.get("categories", {})
     opts = taxonomy.JUSTIFY_OPTIONS
+    saved = db.get_response(ann_id, item.pair_id, "stage2") or {}
+    saved_diffs = saved.get("differences", [])
 
-    section_header("For each category: was it asked or implied by the user?")
-    cats = {}
-    for group, items in taxonomy.categories_for(item.genre):
-        group_header(group)
-        for cid, label, hlp in items:
-            prev = saved_cats.get(cid, {})
-            category_label(label, hlp)
-            cur = prev.get("justify")
-            val = st.radio(label, opts, index=opts.index(cur) if cur in opts else None,
-                           horizontal=True, key=f"s2j_{item.pair_id}_{cid}",
-                           label_visibility="collapsed")
-            cats[cid] = {"justify": val}
+    # The differences the annotator listed in Stage 1 become the rated items here.
+    s1 = db.get_response(ann_id, item.pair_id, "stage1") or {}
+    diffs = [d for d in s1.get("differences", [])
+             if isinstance(d, dict) and d.get("difference")]
+
+    section_header("For each difference you listed in Stage 1: was it asked or implied by the user?")
+    answers = []
+    if not diffs:
+        st.info("No differences from Stage 1 are available for this pair yet."
+                + ("  In admin preview, complete Stage 1 for this pair first to populate them."
+                   if is_preview else ""))
+    for i, d in enumerate(diffs):
+        prev = saved_diffs[i] if i < len(saved_diffs) else {}
+        reason = d.get("reasoning", "")
+        st.markdown(
+            f'<div style="font-size:1.05rem;font-weight:700;color:#121212;margin-top:12px">'
+            f'Difference {i+1}: {_html.escape(d.get("difference",""))}</div>'
+            + (f'<div style="font-size:0.9rem;color:#333;margin:1px 0 4px 0">'
+               f'Your reasoning / lines: {_html.escape(reason)}</div>' if reason else ""),
+            unsafe_allow_html=True)
+        cur = prev.get("justify")
+        val = st.radio(f"diff{i}", opts, index=opts.index(cur) if cur in opts else None,
+                       horizontal=True, key=f"s2j_{item.pair_id}_{i}", label_visibility="collapsed")
+        answers.append({"difference": d.get("difference", ""), "reasoning": reason, "justify": val})
+
+    # ---- DISABLED (kept for later): rate the fixed taxonomy categories for asked/implied.
+    # To re-enable, uncomment this block and save it alongside (or instead of) `differences`.
+    # saved_cats = saved.get("categories", {})
+    # cats = {}
+    # for group, items in taxonomy.categories_for(item.genre):
+    #     group_header(group)
+    #     for cid, label, hlp in items:
+    #         prev = saved_cats.get(cid, {})
+    #         category_label(label, hlp)
+    #         cur = prev.get("justify")
+    #         val = st.radio(label, opts, index=opts.index(cur) if cur in opts else None,
+    #                        horizontal=True, key=f"s2jc_{item.pair_id}_{cid}",
+    #                        label_visibility="collapsed")
+    #         cats[cid] = {"justify": val}
+    # ------------------------------------------------------------------------------------
 
     section_header("Any additional remarks about this pair (optional)")
     remarks = st.text_area("Remarks", value=saved.get("remarks", ""), key=f"s2rm_{item.pair_id}",
@@ -299,13 +341,13 @@ def render_stage2(ann_id, item, is_preview):
                                 placeholder="Describe how satisfied you would be and why.")
 
     if st.button("Save and continue", key=f"save_s2_{item.pair_id}", type="primary"):
-        unanswered = [cid for cid, v in cats.items() if v["justify"] is None]
+        unanswered = [i + 1 for i, a in enumerate(answers) if a["justify"] is None]
         if unanswered and not is_preview:
-            st.warning(f"Please choose an option for every category before continuing. "
-                       f"{len(unanswered)} still unanswered.")
+            st.warning("Please choose an option for every difference before continuing. "
+                       f"Unanswered: difference {', '.join(map(str, unanswered))}.")
             return False
         db.save_response(ann_id, item.pair_id, "stage2",
-                         {"categories": cats, "remarks": remarks.strip(),
+                         {"differences": answers, "remarks": remarks.strip(),
                           "satisfaction": satisfaction.strip()}, is_preview=is_preview)
         db.log_event(ann_id, "save", item.pair_id, "stage2")
         return True
