@@ -136,7 +136,7 @@ AI-detection tool, and **responses detected as AI-generated will not be compensa
 """
 
 CONSENT_FORM = """
-### Consent Form for Investigating the Impact of AI on Writing
+### Consent Form
 
 **Introduction**
 
@@ -145,21 +145,21 @@ which I invite you to take part in.
 
 **Purpose**
 
-The purpose of this study is to collect data in order to understand what people think is deceptive or not.
+The purpose of this study is to understand the types of edits are made to written text.
 
 **Procedures**
 
-If you agree to be in this study, you will be asked to view some interactions in an interface and answer
-whether each interaction is deceptive or not on a scale.
+If you agree to be in this study, you will be shown a series of paired texts in an online interface. In each pair, one text is an author's original draft
+and the other is a revised version of it. For each pair, you will be asked to identify the differences between the two versions and answer follow up questions about the differences. You will respond using short
+written answers and multiple-choice selections.
 
-Study time: The estimated study completion time has been displayed to you in CloudResearch Connect interface.
+Study time: The estimated study completion time has been displayed to you in Prolific interface.
 
 Study location: You will participate online, from the comfort of your current location.
 
 **Benefits**
 
-There is no direct benefit to you (other than compensation) from participating in this study. We hope that
-the information gained from the study will help us design better methods to mitigate deception.
+There is no direct benefit to you (other than compensation) from participating in this study. 
 
 **Risks/Discomforts**
 
@@ -177,10 +177,7 @@ by any third parties.
 
 **Compensation**
 
-We compensate workers based on the estimated duration of completing the study. The study will be prorated to
-$20/hour for the anticipated duration of completing the study, which is posted for your job on the
-CloudResearch interface you used to view the job (duration includes reviewing instructions, completing the
-task, and filling an exit survey). The payment is arranged by CloudResearch via credit to subjects' accounts.
+We compensate workers based on the estimated duration of completing the study. The payment is arranged by Prolific via credit to subjects' accounts.
 
 **Rights**
 
@@ -189,10 +186,7 @@ at any point in this study without penalty or loss of benefits to which you are 
 
 **Questions**
 
-If you have any questions or concerns about this study, or in case anything goes wrong with the online
-interface, you can contact Marwa Abdulhai at marwa_abdulhai@berkeley.edu. If you have any questions or concerns
-about your rights and treatment as a research subject, you may contact the office of UC Berkeley's Committee
-for the Protection of Human Subjects, at 510-642-7461 or subjects@berkeley.edu.
+If you have any questions or concerns about this study, or in case anything goes wrong with the online interface, you can contact Marwa Abdulhai at marwa_abdulhai@berkeley.edu.
 
 **IRB review:**
 
