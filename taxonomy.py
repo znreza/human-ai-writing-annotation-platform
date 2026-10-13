@@ -192,10 +192,6 @@ at any point in this study without penalty or loss of benefits to which you are 
 
 If you have any questions or concerns about this study, or in case anything goes wrong with the online interface, you can contact Marwa Abdulhai at marwa_abdulhai@berkeley.edu.
 
-**IRB review:**
-
-This study was approved by an IRB review under the CPHS protocol ID number 2022-07-15514.
-
 _You should save a copy of this consent form for your records._
 
 If you wish to participate in this study, please click the **"I consent"** button below.
