@@ -48,17 +48,37 @@ def group_header(name):
                 f'padding-bottom:5px;border-bottom:2px solid {RED};margin-bottom:8px">{_html.escape(name)}</div>',
                 unsafe_allow_html=True)
 
+# abbreviations ending in a period that do NOT end a sentence (so we don't split after them)
+_ABBREV = {"dr", "mr", "mrs", "ms", "mx", "prof", "sr", "jr", "st", "rev", "gen", "col", "sgt",
+           "lt", "capt", "hon", "pres", "supt", "det", "vs", "etc", "mt", "ft", "fig", "no",
+           "vol", "pp", "al", "inc", "ltd", "co", "dept", "est", "approx",
+           "e.g", "i.e", "a.m", "p.m", "u.s", "u.k"}
+
+def _ends_with_abbrev(s):
+    """True if s ends with an abbreviation or single initial (e.g. 'Dr.', 'e.g.', 'E.') rather than a
+    real sentence end — ignoring trailing quotes/brackets."""
+    s = s.rstrip().rstrip('"\'’”)]')
+    m = re.search(r'([A-Za-z][A-Za-z.]*)\.$', s)
+    if not m:
+        return False
+    w = m.group(1).strip('.').lower()
+    return w in _ABBREV or len(w) == 1
+
 def to_lines(text):
-    """One numbered unit per SENTENCE (split within each line), numbered before the sentence."""
+    """One numbered unit per SENTENCE (split within each line). Avoids false breaks after abbreviations
+    (Dr., Mr., e.g., U.S.) and single initials, so e.g. 'Dr. Elizabeth' stays on one numbered line."""
     units = []
     for raw in (text or "").split("\n"):
         raw = raw.strip()
         if not raw:
             continue
+        merged = []
         for part in re.split(r'(?<=[.!?])\s+', raw):
-            part = part.strip()
-            if part:
-                units.append(part)
+            if merged and _ends_with_abbrev(merged[-1]):
+                merged[-1] = merged[-1] + " " + part          # re-join: previous "sentence" was an abbrev
+            else:
+                merged.append(part)
+        units.extend(p.strip() for p in merged if p.strip())
     return units
 
 def numbered_block(text, prefix, height=320, big=False):
