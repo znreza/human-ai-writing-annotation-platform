@@ -64,22 +64,55 @@ def _ends_with_abbrev(s):
     w = m.group(1).strip('.').lower()
     return w in _ABBREV or len(w) == 1
 
+_DQ = set('"“”')                       # double-quote chars (toggle "inside a quotation" state)
+_CLOSERS = '"”’\')]'                    # trailing quotes/brackets that belong to the sentence just ended
+
+def _split_sentences(raw):
+    """Split one source line into sentences. A '.?!' ends a sentence ONLY when we are not inside an open
+    double-quote and the next sentence clearly begins (a capital letter or an opening quote). This keeps
+    quoted dialogue like \"Elara? You saw...\" intact and never strands a closing quote on its own."""
+    out, start, i, n, dq = [], 0, 0, len(raw), 0
+    while i < n:
+        ch = raw[i]
+        if ch in _DQ:
+            dq += 1; i += 1; continue
+        if ch in ".!?…":
+            j = i + 1; cq = 0
+            while j < n and raw[j] in _CLOSERS:            # absorb closing quotes/brackets into this sentence
+                if raw[j] in _DQ: cq += 1
+                j += 1
+            k = j
+            while k < n and raw[k] == " ":
+                k += 1
+            starts_new = k < n and (raw[k].isupper() or raw[k] in _DQ)
+            if (k > j and starts_new and (dq + cq) % 2 == 0
+                    and not _ends_with_abbrev(raw[start:j])):
+                out.append(raw[start:j].strip())
+                dq += cq; start = k; i = k; continue
+        i += 1
+    if start < n:
+        out.append(raw[start:].strip())
+    return [s for s in out if s]
+
+def _merge_fragments(units):
+    """Fold any unit with no letters/digits (a stray quote or punctuation mark) into the previous line."""
+    out = []
+    for u in units:
+        if out and not re.search(r'[A-Za-z0-9]', u):
+            out[-1] = (out[-1] + " " + u).strip()
+        else:
+            out.append(u)
+    return out
+
 def to_lines(text):
-    """One numbered unit per SENTENCE (split within each line). Avoids false breaks after abbreviations
-    (Dr., Mr., e.g., U.S.) and single initials, so e.g. 'Dr. Elizabeth' stays on one numbered line."""
+    """One numbered unit per SENTENCE. Quote-aware (won't split inside dialogue), abbreviation-aware
+    (Dr., Mr., e.g., U.S., single initials stay joined), and never leaves a lone quote/punctuation line."""
     units = []
     for raw in (text or "").split("\n"):
         raw = raw.strip()
-        if not raw:
-            continue
-        merged = []
-        for part in re.split(r'(?<=[.!?])\s+', raw):
-            if merged and _ends_with_abbrev(merged[-1]):
-                merged[-1] = merged[-1] + " " + part          # re-join: previous "sentence" was an abbrev
-            else:
-                merged.append(part)
-        units.extend(p.strip() for p in merged if p.strip())
-    return units
+        if raw:
+            units.extend(_split_sentences(raw))
+    return _merge_fragments(units)
 
 def numbered_block(text, prefix, height=320, big=False):
     fs = "1.02rem" if big else "0.95rem"
