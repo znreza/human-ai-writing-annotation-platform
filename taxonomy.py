@@ -145,7 +145,7 @@ which I invite you to take part in.
 
 **Purpose**
 
-The purpose of this study is to understand the types of edits are made to written text.
+The purpose of this study is to understand the types of edits made to written text.
 
 **Procedures**
 

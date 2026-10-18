@@ -11,6 +11,11 @@ annotation_candidates*.html
 corpus_pairs_index.json
 selected_ids*.txt
 
+# editable annotation pools + preview galleries (offline build artifacts; real data lives in the DB)
+pool_edited*/
+pool_final/
+*_gallery.html
+
 # python
 __pycache__/
 *.pyc
