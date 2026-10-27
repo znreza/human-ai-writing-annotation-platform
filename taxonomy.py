@@ -140,9 +140,9 @@ CONSENT_FORM = """
 
 #### TITLE OF RESEARCH: Study on Human Writing
 
-#### PRINCIPAL INVESTIGATOR: Marwa Abdulhai
+#### RESEARCHER: Marwa Abdulhai
 
-#### PRINCIPAL INVESTIGATOR’S DEPARTMENT: Computer Science
+#### RESEARCHER’S INSTITUTION: Department of Computer Science, Princeton University
 
 You are being invited to take part in a research study. Before you decide to participate in this study, it is important that you understand why the research is being done and what it will involve. Please take the time to read the following information carefully. Please ask the researcher if there is anything that is not clear or if you need more information.
 
@@ -156,7 +156,7 @@ If you agree to be in this study, you will be shown a series of paired texts in 
 
 The answers you provide in the task may be used as stimuli for future participants. However, data that would identify you will not be shared with other participants.
 
-The study duration will vary from 5 to 30 minutes. 
+The study duration will be **30 minutes**. 
 
 
 **Benefits and Risks:**
@@ -173,11 +173,11 @@ We will not be asking for any personally identifying information, and we will ha
 
 **Compensation:**
 
-For your participation, you will receive $10/hr for your participation. If you are on Prolific and for any reason you do not complete the study (e.g. technical difficulties, or a desire to stop), we will only be able to pay you if you send an email through Prolific, or by emailing the researcher, at marwa_abdulhai@berkeley.edu.  If you have any questions about the study, feel free to contact the researcher or the Principal Investigator, Marwa Abdulhai, at marwa_abdulhai@berkeley.edu.   
+For your participation, you will receive $11/hour for your participation. If you are on Prolific and for any reason you do not complete the study (e.g. technical difficulties, or a desire to stop), we will only be able to pay you if you send an email through Prolific, or by emailing the researcher, at marwa_abdulhai@berkeley.edu.  If you have any questions about the study, feel free to contact the researcher, Marwa Abdulhai, at marwa_abdulhai@berkeley.edu.   
 
 Who to contact with questions:
 
-1.	PRINCIPAL INVESTIGATOR:
+1.	RESEARCHER:
 
             Marwa Abdulhai
             marwa_abdulhai@berkeley.edu
