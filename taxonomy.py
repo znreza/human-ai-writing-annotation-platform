@@ -136,61 +136,60 @@ AI-detection tool, and **responses detected as AI-generated will not be compensa
 """
 
 CONSENT_FORM = """
-### Consent Form
+## Adult Consent Form
 
-**Introduction**
+### TITLE OF RESEARCH: Study on Human Writing
 
-My name is Dr. Marwa Abdulhai. I am a postdoctoral fellow at Princeton University, in the Department of Computer Science. I am planning to conduct a research study,
-which I invite you to take part in.
+### PRINCIPAL INVESTIGATOR: Marwa Abdulhai
 
-**Purpose**
+### PRINCIPAL INVESTIGATOR’S DEPARTMENT: Computer Science
 
-The purpose of this study is to understand the types of edits made to written text.
+You are being invited to take part in a research study. Before you decide to participate in this study, it is important that you understand why the research is being done and what it will involve. Please take the time to read the following information carefully. Please ask the researcher if there is anything that is not clear or if you need more information.
 
-**Procedures**
+**Purpose of the research:**
+This project aims to collect data that can be used to understand the types of edits made to written text.
 
-If you agree to be in this study, you will be shown a series of paired texts in an online interface. In each pair, one text is an author's original draft
-and the other is a revised version of it. For each pair, you will be asked to identify the differences between the two versions and answer follow up questions about the differences. You will respond using short
-written answers and multiple-choice selections.
+**Study Procedures:**
+If you agree to be in this study, you will be shown a series of paired texts in an online interface. In each pair, one text is an author's original draft, and the other is a revised version of it. For each pair, you will be asked to identify the differences between the two versions and answer follow up questions about the differences. You will respond using short written answers and multiple-choice selections.
 
-**Study time**
+The answers you provide in the task may be used as stimuli for future participants. However, data that would identify you will not be shared with other participants.
 
-The estimated study completion time has been displayed to you in Prolific interface.
+The study duration will vary from 5 to 30 minutes. 
 
-**Study location** 
 
-You will participate online, from the comfort of your current location.
+**Benefits and Risks:**
+There are no direct benefits to you as a participant; however, by furthering our understanding of edits made to pieces of writing, this research will benefit society by helping develop better tools for assisting people in writing tasks.
 
-**Benefits**
+Risks associated with participation in this study are minimal. As with all research, there is the risk of an unintended breach of confidentiality. However, we are taking precautions to minimize this risk (see below).
 
-There is no direct benefit to you (other than compensation) from participating in this study. 
 
-**Risks/Discomforts**
+**Confidentiality:** 
+We will not be asking for any personally identifying information, and we will handle responses as confidentially as possible. Your name, or your Worker IDs will never be tied to your responses on this survey. However, we cannot guarantee the confidentiality of information transmitted over the Internet. To minimize this risk, data containing anything that might be personally identifiable (e.g. Worker IDs) will be encrypted on transfer and storage and will only be accessible to qualified lab personnel. We will be keeping data collected as part of this experiment indefinitely. This anonymized data (containing neither Worker IDs nor IP addresses) may be shared with the scientific community and corporate sponsors. At the end of the survey you may be asked if you would like to provide your email or Prolific ID to be contacted to participate in future studies., If you choose to provide this information, you may be contacted for participation in future studies.
 
-This study represents minimal risk to you. As with all research, there is the risk of an unintended breach
-of confidentiality. However, we are taking precautions to minimize this risk (see below).
 
-**Confidentiality**
+**Compensation:**
+For your participation, you will receive $10-$15/hr for your participation. If you are on Prolific and for any reason you do not complete the study (e.g. technical difficulties, or a desire to stop), we will only be able to pay you if you send an email through Prolific, or by emailing the researcher, at marwa_abdulhai@berkeley.edu.  If you have any questions about the study, feel free to contact the researcher or the Principal Investigator, Marwa Abdulhai, at marwa_abdulhai@berkeley.edu.   
 
-The data we collect will be stored on password-protected servers. Once the research is complete, we intend
-to scrub the data of all identifiable information. We will keep only the recorded survey responses, as well
-as a freshly generated identifier for each subject. The de-identified data will be retained indefinitely for
-possible use in future research done by ourselves or others. This cleaned dataset may be made public as part
-of the publishing process. No guarantees can be made regarding the interception of data sent via the Internet
-by any third parties.
+Who to contact with questions:
 
-**Compensation**
+1.	PRINCIPAL INVESTIGATOR:
+			Marwa Abdulhai
+			marwa_abdulhai@berkeley.edu
 
-We compensate workers based on the estimated duration of completing the study. The payment is arranged by Prolific via credit to subjects' accounts.
+2.	If you have questions regarding your rights as a research subject, or if problems arise which you do not feel you can discuss with the Investigator, please contact the Institutional Review Board at:
 
-**Rights**
+            Assistant Director, Research Integrity and Assurance
+            Phone: (609) 258-8543
+            Email: irb@princeton.edu
 
-Participation in research is completely voluntary. You have the right to decline to participate or to withdraw
-at any point in this study without penalty or loss of benefits to which you are otherwise entitled.
+3.	I understand the information that was presented and that:
 
-**Questions**
+	A.	My participation is voluntary, and I may withdraw my consent and discontinue participation in the project at any time.  My refusal to participate will not result in any penalty.
 
-If you have any questions or concerns about this study, or in case anything goes wrong with the online interface, you can contact Marwa Abdulhai at marwa_abdulhai@berkeley.edu.
+	B.	I do not waive any legal rights or release Princeton University, its agents, or you from liability for negligence.
+
+
+4.	I hereby give my consent to be the subject of your research.  
 
 _You should save a copy of this consent form for your records._
 
