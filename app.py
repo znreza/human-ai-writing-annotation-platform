@@ -21,6 +21,35 @@ def _scroll_to_top():
         "if(t){t.scrollTo({top:0,left:0,behavior:'auto'});}window.parent.scrollTo(0,0);</script>",
         height=0)
 
+def _lock_copy_paste():
+    """Stop annotators round-tripping the material through an external tool: block copying/cutting the
+    read-only study content (drafts, conversation, instruction) and pasting (or dragging) anything into the
+    answer boxes. Installed ONCE per page load on the PARENT document via a height-0 helper iframe, using
+    capture-phase listeners so content rendered by later Streamlit reruns is covered too. Textareas/inputs
+    stay fully editable — only clipboard copy/cut/paste, the right-click menu, and drag-drop are blocked.
+    Called only for real annotators on the stage pages, so the admin dashboard and preview are unaffected."""
+    components.html(
+        """<script>
+        (function(){
+          try{
+            var d = window.parent.document;
+            if (d.__wmClipboardLock) return;            // install once per page load
+            d.__wmClipboardLock = true;
+            var stop = function(e){ e.preventDefault(); e.stopPropagation(); return false; };
+            // block copy/cut/paste across the whole app (the drafts/conversation AND the answer boxes)
+            ['copy','cut','paste','contextmenu','dragstart','drop','dragover'].forEach(function(ev){
+              d.addEventListener(ev, stop, true);
+            });
+            // make read-only content unselectable, but keep inputs selectable so typing/editing still works
+            var s = d.createElement('style');
+            s.textContent = 'body{-webkit-user-select:none;-ms-user-select:none;user-select:none;}'
+              + 'textarea,input{-webkit-user-select:text;-ms-user-select:text;user-select:text;}';
+            (d.head || d.documentElement).appendChild(s);
+          }catch(err){}
+        })();
+        </script>""",
+        height=0)
+
 def _valid_prolific(pid):
     """Prolific IDs are alphanumeric tokens (commonly 24 chars). Keep the check loose but non-empty."""
     return bool(pid) and re.fullmatch(r"[A-Za-z0-9]{5,64}", pid) is not None
@@ -122,6 +151,8 @@ def current_stage(ann_id, items):
     return None
 
 def run_stage(ann_id, items, stage, is_preview):
+    if not is_preview:
+        _lock_copy_paste()      # block copy (drafts/conversation) and paste (answer boxes) for annotators
     n = len(items)
     idx_key = f"idx_{stage}"
     st.session_state.setdefault(idx_key, 0)
