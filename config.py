@@ -34,12 +34,14 @@ _DEFAULT_DB = "sqlite:///" + os.path.join(os.path.dirname(os.path.abspath(__file
 DATABASE_URL = _get("DATABASE_URL", _DEFAULT_DB)
 
 # ---- study parameters ----
-# The study covers three genres only. Each annotator sees PER_GENRE pairs from each, so
-# PAIRS_PER_ANNOTATOR = PER_GENRE * len(STUDY_GENRES). Sets are drawn per annotator so they differ
-# (overlap allowed, never fully identical). Same set is shown across both stages.
+# The study covers three genres only. The active POOL holds PER_GENRE pairs per genre (4 -> 12 total).
+# Each annotator is randomly assigned SAMPLE_PER_GENRE pairs from each genre (2 -> 6 total), drawn from
+# that pool, so sets differ across annotators (overlap allowed, never guaranteed identical). The same
+# assigned set is shown across both stages.
 STUDY_GENRES = ["fiction", "academic", "application"]
-PER_GENRE = int(_get("PER_GENRE", "4"))
-PAIRS_PER_ANNOTATOR = PER_GENRE * len(STUDY_GENRES)  # 12 (4 per genre)
+PER_GENRE = int(_get("PER_GENRE", "4"))                       # active pool size per genre
+SAMPLE_PER_GENRE = int(_get("SAMPLE_PER_GENRE", "2"))         # per-annotator random draw per genre
+PAIRS_PER_ANNOTATOR = SAMPLE_PER_GENRE * len(STUDY_GENRES)    # 6 (2 per genre)
 TARGET_MINUTES = 30          # displayed guidance only
 STUDY_TITLE = "Study on the Impact of AI on Writing"
 

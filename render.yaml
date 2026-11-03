@@ -9,7 +9,9 @@ services:
       - key: PYTHON_VERSION
         value: "3.11.9"
       - key: PER_GENRE
-        value: "4"
+        value: "4"            # active pool size per genre (12 total)
+      - key: SAMPLE_PER_GENRE
+        value: "2"            # per-annotator random draw per genre (6 total)
       - key: ANNOTATOR_PASSWORD
         sync: false    # set in the Render dashboard, not stored in the repo
       - key: ADMIN_PASSWORD
