@@ -134,7 +134,7 @@ a revised version of it. The study has **two short stages**, shown one at a time
 writing assistant). We want your own observations in your own words. All responses are screened by an
 AI-detection tool, and **responses detected as AI-generated will not be compensated.**
 
-You must answer all questions in english to the best of your ability. **Only English-language responses will be accepted.** 
+You must answer all questions in English to the best of your ability. **Only English-language responses will be accepted.** 
 """
 
 CONSENT_FORM = """
